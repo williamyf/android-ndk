@@ -196,6 +196,7 @@ int32_t Engine::HandleInput(android_app* app, AInputEvent* event) {
     // Double tap detector has a priority over other detectors
     if (doubleTapState == ndk_helper::GESTURE_STATE_ACTION) {
       // Detect double tap
+      LOGI("execute code: eng->tap_camera_.Reset(true)");
       eng->tap_camera_.Reset(true);
     } else {
       // Handle drag state
@@ -205,13 +206,16 @@ int32_t Engine::HandleInput(android_app* app, AInputEvent* event) {
         eng->drag_detector_.GetPointer(v);
         eng->TransformPosition(v);
         eng->tap_camera_.BeginDrag(v);
+        LOGI("execute code: eng->tap_camera_.BeginDrag(v)");
       } else if (dragState & ndk_helper::GESTURE_STATE_MOVE) {
         ndk_helper::Vec2 v;
         eng->drag_detector_.GetPointer(v);
         eng->TransformPosition(v);
         eng->tap_camera_.Drag(v);
+        LOGI("execute code: eng->tap_camera_.Drag(v)");
       } else if (dragState & ndk_helper::GESTURE_STATE_END) {
         eng->tap_camera_.EndDrag();
+        LOGI("execute code: eng->tap_camera_.EndDrag(v)");
       }
 
       // Handle pinch state
@@ -223,6 +227,7 @@ int32_t Engine::HandleInput(android_app* app, AInputEvent* event) {
         eng->TransformPosition(v1);
         eng->TransformPosition(v2);
         eng->tap_camera_.BeginPinch(v1, v2);
+        LOGI("execute code: eng->tap_camera_.BeginPinch(v)");
       } else if (pinchState & ndk_helper::GESTURE_STATE_MOVE) {
         // Multi touch
         // Start new pinch
@@ -232,6 +237,7 @@ int32_t Engine::HandleInput(android_app* app, AInputEvent* event) {
         eng->TransformPosition(v1);
         eng->TransformPosition(v2);
         eng->tap_camera_.Pinch(v1, v2);
+        LOGI("execute code: eng->tap_camera_.Pinch(v)");
       }
     }
     return 1;
@@ -249,6 +255,7 @@ void Engine::HandleCmd(struct android_app* app, int32_t cmd) {
       break;
     case APP_CMD_INIT_WINDOW:
       // The window is being shown, get it ready.
+      LOGI("APP_CMD_INIT_WINDOW");
       if (app->window != NULL) {
         eng->InitDisplay();
         eng->DrawFrame();
@@ -256,23 +263,27 @@ void Engine::HandleCmd(struct android_app* app, int32_t cmd) {
       break;
     case APP_CMD_TERM_WINDOW:
       // The window is being hidden or closed, clean it up.
+      LOGI("APP_CMD_TERM_WINDOW");
       eng->TermDisplay();
       eng->has_focus_ = false;
       break;
     case APP_CMD_STOP:
       break;
     case APP_CMD_GAINED_FOCUS:
+      LOGI("APP_CMD_GAINED_FOCUS");
       eng->ResumeSensors();
       // Start animation
       eng->has_focus_ = true;
       break;
     case APP_CMD_LOST_FOCUS:
+      LOGI("APP_CMD_LOST_FOCUS");
       eng->SuspendSensors();
       // Also stop animating.
       eng->has_focus_ = false;
       eng->DrawFrame();
       break;
     case APP_CMD_LOW_MEMORY:
+      LOGI("APP_CMD_LOW_MEMORY");
       // Free up GL resources
       eng->TrimMemory();
       break;
@@ -376,12 +387,15 @@ Engine g_engine;
  * event loop for receiving input events and doing other things.
  */
 void android_main(android_app* state) {
+  LOGI("enter android_main");
   app_dummy();
 
   g_engine.SetState(state);
 
+  LOGI("begin Init helper functions");
   // Init helper functions
   ndk_helper::JNIHelper::Init(state->activity, HELPER_CLASS_NAME);
+  LOGI("end Init helper functions");
 
   state->userData = &g_engine;
   state->onAppCmd = Engine::HandleCmd;
@@ -424,4 +438,6 @@ void android_main(android_app* state) {
       g_engine.DrawFrame();
     }
   }
+
+  LOGI("leave android_main");
 }

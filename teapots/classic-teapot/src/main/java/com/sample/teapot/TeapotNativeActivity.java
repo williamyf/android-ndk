@@ -20,6 +20,7 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.NativeActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,6 +34,9 @@ public class TeapotNativeActivity extends NativeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Log.w("wyf", "enter TeapotNativeActivity's onCreate");
+
         //Hide toolbar
         int SDK_INT = android.os.Build.VERSION.SDK_INT;
         if(SDK_INT >= 19)
@@ -49,6 +53,7 @@ public class TeapotNativeActivity extends NativeActivity {
             });
         }
 
+        Log.w("wyf", "leave TeapotNativeActivity's onCreate");
     }
 
     @TargetApi(19)    

@@ -33,7 +33,7 @@ import android.widget.Toast;
 public class TeapotApplication extends Application {
     public void onCreate(){
         super.onCreate();	
-        Log.w("native-activity", "onCreate");
+        Log.w("wyf", "enter TeapotApplication's onCreate");
 
         final PackageManager pm = getApplicationContext().getPackageManager();
         ApplicationInfo ai;
@@ -44,5 +44,6 @@ public class TeapotApplication extends Application {
         }
         final String applicationName = (String) (ai != null ? pm.getApplicationLabel(ai) : "(unknown)");
         Toast.makeText(this, applicationName, Toast.LENGTH_SHORT).show();
+        Log.w("wyf", "leave TeapotApplication's onCreate");
     }
 }
