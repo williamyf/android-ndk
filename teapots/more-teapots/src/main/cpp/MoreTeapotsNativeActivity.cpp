@@ -74,6 +74,10 @@ class Engine {
   void TransformPosition(ndk_helper::Vec2& vec);
 
  public:
+
+    bool take_screen_shot_;
+    std::string screen_shot_name_;
+    bool get_gpu_info_;
   static void HandleCmd(struct android_app* app, int32_t cmd);
   static int32_t HandleInput(android_app* app, AInputEvent* event);
 
@@ -102,6 +106,8 @@ class Engine {
 Engine::Engine()
     : initialized_resources_(false),
       has_focus_(false),
+      take_screen_shot_(false),
+      get_gpu_info_(false),
       app_(NULL),
       sensor_manager_(NULL),
       accelerometer_sensor_(NULL),
@@ -163,6 +169,7 @@ int Engine::InitDisplay() {
 /**
  * Just the current frame in the display.
  */
+#include <fstream>
 void Engine::DrawFrame() {
   float fps;
   if (monitor_.Update(fps)) {
@@ -176,6 +183,63 @@ void Engine::DrawFrame() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   renderer_.Render();
 
+  if (take_screen_shot_) {
+    take_screen_shot_ = false;
+    LOGI("wyf: taking screen shot ...");
+
+    int w = gl_context_->GetScreenWidth();
+    int h = gl_context_->GetScreenHeight();
+    LOGI("wyf: w = %d h = %d",w,h);
+
+    unsigned char* pixcels_data = new unsigned char[w * h * 3];
+    glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, pixcels_data);
+
+    int filesize = 54;
+    std::vector<char> bmp_header(filesize, 0);
+    {
+      std::ifstream ifs("/sdcard/dummy.bmp", std::ios_base::binary);
+      ifs.read(&bmp_header[0], filesize);
+      ifs.close();
+    }
+    int *width = (int*)&bmp_header[18];
+    int *height = (int*)&bmp_header[22];
+    *width = w;
+    *height = h;
+    std::ofstream ofs("/sdcard/snapshot.bmp", std::ios_base::binary);
+    int size = bmp_header.size();
+    ofs.write(bmp_header.data(), size);
+    ofs.write((const char*)pixcels_data, w * h * 3);
+    ofs.close();
+    delete[] pixcels_data;
+  }
+    if (get_gpu_info_) {
+        get_gpu_info_ = false;
+        const char* renderer = (const char*)glGetString(GL_RENDERER);
+        const char* vendor = (const char*)glGetString(GL_VENDOR);
+        const char* extensions = (const char*)glGetString(GL_EXTENSIONS);
+
+        LOGI("wyf: renderer is %s",renderer);
+        LOGI("wyf: vendor is %s",vendor);
+        LOGI("wyf: extensions is %s",extensions);
+        std::string strInfo;
+        strInfo.append("RENDERER : ");
+        strInfo.append(renderer);
+        strInfo.append(",VENDOR : ");
+        strInfo.append(vendor);
+        strInfo.append(",EXTENSIONS : ");
+        strInfo.append(extensions);
+
+        JNIEnv* jni;
+        app_->activity->vm->AttachCurrentThread(&jni, NULL);
+
+        jstring jstr = jni->NewStringUTF(strInfo.c_str());
+        jclass clazz = jni->GetObjectClass(app_->activity->clazz);
+        jmethodID methodID = jni->GetMethodID(clazz, "gpuInfoCallback", "(Ljava/lang/String;)V");
+        jni->CallVoidMethod(app_->activity->clazz, methodID, jstr);
+        jni->DeleteLocalRef(jstr);
+
+        app_->activity->vm->DetachCurrentThread();
+    }
   // Swap
   if (EGL_SUCCESS != gl_context_->Swap()) {
     UnloadResources();
@@ -385,6 +449,27 @@ Engine g_engine;
  * android_native_app_glue.  It runs in its own thread, with its own
  * event loop for receiving input events and doing other things.
  */
+
+extern "C" {
+
+JNIEXPORT void JNICALL Java_com_sample_moreteapots_MoreTeapotsNativeActivity_takeScreenShot
+        (JNIEnv *env, jobject, jstring jname)
+{
+  const char* cname = env->GetStringUTFChars(jname,0);
+  g_engine.screen_shot_name_ = cname;
+  g_engine.take_screen_shot_ = true;
+}
+
+JNIEXPORT void JNICALL Java_com_sample_moreteapots_MoreTeapotsNativeActivity_getGpuInfo
+        (JNIEnv *env, jobject)
+{
+    LOGI("wyf: enter Java_com_sample_moreteapots_MoreTeapotsNativeActivity_getGpuInfo");
+    g_engine.get_gpu_info_ = true;
+}
+
+}
+
+
 void android_main(android_app* state) {
   app_dummy();
 

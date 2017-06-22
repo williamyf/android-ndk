@@ -19,6 +19,7 @@ package com.sample.moreteapots;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.NativeActivity;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.Log;
@@ -27,9 +28,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup.MarginLayoutParams;
 import android.view.WindowManager.LayoutParams;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
+
+import com.sample.helper.ScreenShot;
 
 public class MoreTeapotsNativeActivity extends NativeActivity {
     @Override
@@ -111,7 +115,7 @@ public class MoreTeapotsNativeActivity extends NativeActivity {
                 View popupView = layoutInflater.inflate(R.layout.widgets, null);
                 _popupWindow = new PopupWindow(
                         popupView,
-                        LayoutParams.WRAP_CONTENT,
+                        LayoutParams.MATCH_PARENT,
                         LayoutParams.WRAP_CONTENT);
 
                 LinearLayout mainLayout = new LinearLayout(_activity);
@@ -125,6 +129,21 @@ public class MoreTeapotsNativeActivity extends NativeActivity {
 
                 _label = (TextView)popupView.findViewById(R.id.textViewFPS);
 
+                Button btnSnap = (Button)popupView.findViewById(R.id.button);
+                btnSnap.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        //ScreenShot.shoot(_activity);
+                        takeScreenShot("");
+                    }
+                });
+                Button btnGpuInfo = (Button)popupView.findViewById(R.id.button3);
+                btnGpuInfo.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        getGpuInfo();
+                    }
+                });
             }});
     }
 
@@ -140,6 +159,24 @@ public class MoreTeapotsNativeActivity extends NativeActivity {
                 _label.setText(String.format("%2.2f FPS", fFPS));
             }});
     }
+
+    public void gpuInfoCallback(final String info) {
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Intent intent = new Intent(_activity, GpuInfoActivity.class);
+                intent.putExtra("GpuInfo", info);
+                startActivity(intent);
+            }
+        });
+    }
+
+    static {
+        System.loadLibrary("MoreTeapotsNativeActivity");
+    }
+
+    public native void takeScreenShot(String name);
+    public native void getGpuInfo();
 }
 
 
